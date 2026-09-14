@@ -11655,3 +11655,14 @@ namespace Ufbx
         public static extern ufbx_blob_list ufbx_dom_as_blob_list([NativeTypeName("const ufbx_dom_node *")] ufbx_dom_node* node);
     }
 }
+
+namespace System.Runtime.CompilerServices
+{
+    [AttributeUsage(AttributeTargets.All, Inherited = false, AllowMultiple = false)]
+    internal sealed class NativeTypeNameAttribute : Attribute
+    {
+        public NativeTypeNameAttribute(string name)
+        {
+        }
+    }
+}

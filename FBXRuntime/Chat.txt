@@ -1,0 +1,227 @@
+Rust puede leer un archivo C sin tener que crear firmas de las funciones antes en rust
+
+
+🔍 Confirmé que bindgen genera bindings de Rust a partir de headers C.
+
+🌐
+🌐
+🌐
+🌐
++5
+Sí. La herramienta bindgen lee un archivo de encabezado C (.h) y genera automáticamente las declaraciones extern "C" en Rust, eliminando la necesidad de escribir las firmas manualmente. 
+
+cargo install bindgen
+bindgen ruta/a/encabezado.h -o src/ffi.rs
+
+El archivo ffi.rs resultante contiene todos los extern "C" fn con los tipos correctos, listos para usar desde Rust. Alternativamente, la crate bindgen también puede integrarse directamente en build.rs para regenerar los bindings en cada compilación. 
+
+
+rust read c file without signature
+
+Mostrar todo
+
+Copiar
+
+
+Hay algo parecido en C# ???
+
+
+Encontré herramientas como ClangPInvoke para generar firmas P/Invoke en C#.
+Sí, la opción más directa es ClangSharpPInvokeGenerator (parte del proyecto ClangSharp de .NET).  Lee archivos de encabezado C/C++ y genera automáticamente las declaraciones DllImport en C#. 
+
+dotnet tool install --global ClangSharpPInvokeGenerator
+ClangSharpPInvokeGenerator @generate.rsp
+
+Ejemplo de generate.rsp:
+
+--file include/milib.h
+--output Bindings.cs
+--namespace MiLib.Interop
+--methodClassName MiLib
+--libraryPath miLib
+
+El resultado es un archivo .cs con todas las funciones, structs y enums mapeados correctamente, listo para compilar. 
+
+Otras alternativas:
+
+Herramienta	Notas
+CsWin32	Source generator específico para la Win32 API (usa metadatos pregenerados)
+CppSharp	De Mono, similar a ClangSharp pero menos mantenido
+csbindgen	Más nuevo, enfoque más simple para puentes C ↔ C#
+
+Para la mayoría de los casos, ClangSharpPInvokeGenerator es el equivalente más cercano a bindgen en el ecosistema .NET. 
+
+
+ClangSharpPInvokeGenerator CsWin32 CppSharp csbindgen documentation
+
+Mostrar todo
+
+Copiar
+
+
+Vale como genero el C# de un ufbx.h con ClangSharpPInvokeGenerator
+
+
+🔍 Busqué instrucciones para generar enlaces C# de ufbx con ClangSharpPInvokeGenerator
+Para ufbx.h (que es una librería single-header), el proceso es directo:
+
+dotnet tool install --global ClangSharpPInvokeGenerator
+
+ClangSharpPInvokeGenerator \
+  --file ufbx.h \
+  --traverse ufbx.h \
+  -n Ufbx \
+  --methodClassName Ufbx \
+  --libraryPath ufbx \
+  -o UfbxBindings.cs
+
+Parámetro	Significado
+--file ufbx.h	Header principal a parsear
+--traverse ufbx.h	Seguir los #include internos (en ufbx no tiene muchos, pero no está de más)
+-n Ufbx	Namespace C# de salida
+--methodClassName Ufbx	Nombre de la clase que agrupa los DllImport
+--libraryPath ufbx	Nombre de la DLL/shared lib (ufbx.dll / libufbx.so)
+-o UfbxBindings.cs	Archivo de salida
+
+Posibles problemas con ufbx.h:
+
+Punteros opacos — ufbx usa muchos punteros opacos (ufbx_scene*, ufbx_mesh*, etc.). El generador los mapeará a IntPtr por defecto, que es lo correcto. Si quieres mapear algunos a void* explícitamente:
+-r "ufbx_scene*=@void*" "ufbx_mesh*=@void*" "ufbx_animation*=@void*"
+
+Funciones con cuerpo — Al ser single-header, el header contiene la implementación. Añade:
+-c exclude-funcs-with-body
+
+para que solo genere bindings de las funciones exportadas (declaradas con UFBX_API), no de las internas. 
+Estructuras complejas — Si hay structs con arrays flexibles o tipos que no compilan, puedes excluirlos:
+--exclude "ufbx_internal_*"
+
+Comando completo recomendado:
+
+ClangSharpPInvokeGenerator \
+  -c exclude-funcs-with-body \
+  --file ufbx.h \
+  --traverse ufbx.h \
+  -n Ufbx \
+  --methodClassName Ufbx \
+  --libraryPath ufbx \
+  -o UfbxBindings.cs
+
+El resultado será un archivo con todos los struct (ufbx_scene, ufbx_mesh, ufbx_animation, …) y las funciones ufbx_* con sus DllImport listos para usar. Asegúrate de tener la shared lib (libufbx.so / ufbx.dll) en el PATH o junto al ejecutable en tiempo de ejecución. 
+
+
+ClangSharpPInvokeGenerator ufbx.h example
+
+Mostrar todo
+
+Copiar
+
+
+El comando no funciona ya que uso windows:
+PS C:\Repositorio\FBXRuntime\FBXRuntime> ClangSharpPInvokeGenerator \
+>>   -c exclude-funcs-with-body \
+>>   --file ufbx.h \
+>>   --traverse ufbx.h \
+>>   -n Ufbx \
+>>   --methodClassName Ufbx \
+>>   --libraryPath ufbx \
+>>   -o UfbxBindings.cs
+En línea: 3 Carácter: 5
++   --file ufbx.h \
++     ~
+Falta una expresión después del operador unario '--'.
+En línea: 3 Carácter: 5
++   --file ufbx.h \
++     ~~~~
+Token 'file' inesperado en la expresión o la instrucción.
+En línea: 4 Carácter: 5
++   --traverse ufbx.h \
++     ~
+Falta una expresión después del operador unario '--'.
+En línea: 4 Carácter: 5
++   --traverse ufbx.h \
++     ~~~~~~~~
+Token 'traverse' inesperado en la expresión o la instrucción.
+En línea: 6 Carácter: 5
++   --methodClassName Ufbx \
++     ~
+Falta una expresión después del operador unario '--'.
+En línea: 6 Carácter: 5
++   --methodClassName Ufbx \
++     ~~~~~~~~~~~~~~~
+Token 'methodClassName' inesperado en la expresión o la instrucción.
+En línea: 7 Carácter: 5
++   --libraryPath ufbx \
++     ~
+Falta una expresión después del operador unario '--'.
+En línea: 7 Carácter: 5
++   --libraryPath ufbx \
++     ~~~~~~~~~~~
+Token 'libraryPath' inesperado en la expresión o la instrucción.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : MissingExpressionAfterOperator
+
+PS C:\Repositorio\FBXRuntime\FBXRuntime>
+
+
+Corregí el comando para PowerShell usando el carácter de continuación adecuado.
+En PowerShell la continuación de línea es con backtick (`), no con \ (que es bash). Pero lo más simple es ponerlo todo en una sola línea:
+
+ClangSharpPInvokeGenerator -c exclude-funcs-with-body --file ufbx.h --traverse ufbx.h -n Ufbx --methodClassName Ufbx --libraryPath ufbx -o UfbxBindings.cs
+
+Si prefieres multi-línea, usa el backtick al final de cada línea:
+
+ClangSharpPInvokeGenerator `
+  -c exclude-funcs-with-body `
+  --file ufbx.h `
+  --traverse ufbx.h `
+  -n Ufbx `
+  --methodClassName Ufbx `
+  --libraryPath ufbx `
+  -o UfbxBindings.cs
+
+
+FBX Runtime ClangSharpPInvokeGenerator Windows not working site:reddit.com
+
+Mostrar todo
+
+Copiar
+
+
+ah utilizado C# demasiado moderno, ¿no puedo decirle que utilice C# 8?
+
+
+
+🔍 Buscando opciones de compatibilidad con C# 8
+Sí, hay una opción para ello. Dependiendo de la versión de ClangSharpPInvokeGenerator que tengas instalada:
+
+Versión reciente (21.x):
+
+ClangSharpPInvokeGenerator -c codegen=compatible -c exclude-funcs-with-body --file ufbx.h --traverse ufbx.h -n Ufbx --methodClassName Ufbx --libraryPath ufbx -o UfbxBindings.cs
+
+Versión anterior (20.x):
+
+ClangSharpPInvokeGenerator -c compatible-codegen -c exclude-funcs-with-body --file ufbx.h --traverse ufbx.h -n Ufbx --methodClassName Ufbx --libraryPath ufbx -o UfbxBindings.cs
+
+Nota: compatible apunta a .NET Standard 2.0, que equivale a C# 7.3 (no C# 8 exactamente). Las opciones disponibles son:
+
+Valor	Objetivo
+compatible	.NET Standard 2.0 (C# 7.3)
+default	.NET LTS actual (C# 12)
+latest	.NET STS actual (C# 14)
+
+No hay una opción explícita para C# 8, pero si tu proyecto usa .NET Core 3.0+ o .NET 5+, el código generado con compatible (C# 7.3) compilará sin problemas porque C# 8 es un superset. Es la opción más segura.
+
+
+C# 8 vs C# 8 modern usage
+
+Mostrar todo
+Trabajando
+¿Cómo aplicaré las bindings generadas en mi proyecto .NET?
+¿Qué diferencias hay entre compatible y default en ClangSharp?
+¿Puedo personalizar los tipos generados para usar C# 8?
+
+Copiar
+
+Reintentar
+
+

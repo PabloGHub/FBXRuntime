@@ -1,0 +1,1 @@
+ClangSharpPInvokeGenerator -c codegen=compatible -c exclude-funcs-with-body --file ufbx.h --traverse ufbx.h -n Ufbx --methodClassName Ufbx --libraryPath ufbx -o UfbxBindings.cs   
