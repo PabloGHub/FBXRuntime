@@ -21,7 +21,7 @@ namespace FBXRuntime
 	// Native ufbx is 1:1
 
 
-
+    /*
 
 
 
@@ -1550,7 +1550,7 @@ namespace FBXRuntime
         public static unsafe extern void ufbx_free_scene(Scene* scene);
     }
 
-
+    */
 
 }
 
