@@ -117,1486 +117,1351 @@ namespace FBXRuntime
     // ************************************************ //
     //             STRUCTURES NATIVES 1:1               //
     // ************************************************ //
+
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct ufbxi_ptr_id
+    public unsafe struct ufbxi_atomic_counter
     {
-        public UIntPtr ptr;
-        public UInt64 id;
+        // alignas(std::atomic_size_t) char data[sizeof(std::atomic_size_t)];
+        public UIntPtr data;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_bigint
+    {
+        public void* limbs; // Original: ufbxi_bigint_limb *
+        public uint capacity;
+        public uint length;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_bit_stream
+    {
+        public UIntPtr input_left;
+        public void* read_fn; // Original: ufbx_read_fn *
+        public void* read_user;
+        public byte* buffer;
+        public UIntPtr buffer_size;
+        public byte* chunk_begin;
+        public byte* chunk_ptr;
+        public byte* chunk_yield;
+        public byte* chunk_end;
+        public byte* chunk_real_end;
+        public UIntPtr num_read_before_chunk;
+        public ulong progress_bias;
+        public ulong progress_total;
+        public UIntPtr progress_interval;
+        public ulong bits;
+        public UIntPtr left;
+        // ufbx_progress_cb suele ser una estructura con un puntero a función
+        public ufbx_progress_cb progress_cb;
+        public ulong cancel_bits;
+        public bool cancelled;
+        public fixed byte local_buffer[256];
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_huff_tree
+    {
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = UFBXI_HUFF_FAST_SIZE)]
+        public ufbxi_huff_sym[] fast_sym;
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = UFBXI_HUFF_MAX_LONG_SYMS)]
+        public ufbxi_huff_sym[] long_sym;
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = UFBXI_HUFF_MAX_VALUE)]
+        public ufbxi_huff_sym[] sorted_to_sym;
+
+        public fixed uint extra_shift_base[UFBXI_HUFF_MAX_EXTRA_SYMS];
+        public fixed ushort extra_mask[UFBXI_HUFF_MAX_EXTRA_SYMS];
+        public fixed ushort past_max_code[UFBXI_HUFF_MAX_BITS];
+        public fixed short code_to_sorted[UFBXI_HUFF_MAX_BITS];
+
+        public uint num_symbols;
+        public uint end_of_block_bits;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_trees
+    {
+        // Desenroscado de la unión "trees[2]" vs "lit_length / dist"
+        public ufbxi_huff_tree lit_length;
+        public ufbxi_huff_tree dist;
+        public uint fast_bits;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_inflate_retain_imp
+    {
+        public bool initialized;
+        public ufbxi_trees static_trees;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_deflate_context
+    {
+        public ufbxi_bit_stream stream;
+        public uint fast_bits;
+        public byte* out_begin;
+        public byte* out_ptr;
+        public byte* out_end;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_print_buffer
+    {
+        public byte* dst;
+        public UIntPtr length;
+        public UIntPtr pos;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_allocator
+    {
+        public void* error; // Original: ufbx_error *
+        public UIntPtr current_size;
+        public UIntPtr max_size;
+        public UIntPtr num_allocs;
+        public UIntPtr max_allocs;
+        public UIntPtr huge_size;
+        public UIntPtr chunk_max;
+        public ufbx_allocator_opts ator;
+        public byte* name;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_buf
+    {
+        public ufbxi_allocator* ator;
+        public ufbxi_buf_chunk* chunk_0; // Desenroscado de chunks[2]
+        public ufbxi_buf_chunk* chunk_1;
+        public UIntPtr pos;
+        public UIntPtr size;
+        public UIntPtr num_items;
+        public UIntPtr pushed_size;
+        public bool unordered;
+        public bool clearable;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_buf_state
+    {
+        public ufbxi_buf_chunk* chunk;
+        public UIntPtr pos;
+        public UIntPtr num_items;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_map
+    {
+        public ufbxi_allocator* ator;
+        public UIntPtr data_size;
+        public void* items;
+        public ulong* entries;
+        public uint mask;
+        public uint capacity;
+        public uint size;
+        public void* cmp_fn; // Original: ufbxi_cmp_fn *
+        public void* cmp_user;
+        public ufbxi_buf aa_buf;
+        public ufbxi_aa_node* aa_root;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_warnings
+    {
+        public void* error; // Original: ufbx_error *
+        public ufbxi_buf* result;
+        public ufbxi_buf tmp_stack;
+        public uint deferred_element_id_plus_one;
+
+        // Original: ufbx_warning *prev_warnings[UFBX_WARNING_TYPE_COUNT][2]
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = UFBX_WARNING_TYPE_COUNT * 2)]
+        public IntPtr[] prev_warnings;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_string_pool
+    {
+        public void* error;
+        public ufbxi_buf buf;
+        public ufbxi_map map;
+        public UIntPtr initial_size;
+        public byte* temp_str;
+        public UIntPtr temp_cap;
+        public int error_handling; // Suponiendo ufbx_unicode_error_handling como enum int
+        public ufbxi_warnings* warnings;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_sanitized_string
+    {
+        public byte* raw_data;
+        public uint raw_length;
+        public uint utf8_length;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_task_imp
+    {
+        public ufbxi_task task;
+        public void* fn; // Original: ufbxi_task_fn *
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_task_group
+    {
+        public uint max_index;
+        public uint wait_index;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_value_array
+    {
+        public void* data;
+        public UIntPtr size;
+        public byte type;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_scene_imp
+    {
+        public ufbxi_refcount refcount;
+        public ufbx_scene scene;
+        public uint magic;
+        public ufbxi_buf string_buf;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public unsafe struct ufbxi_ascii_token_value
+    {
+        [FieldOffset(0)] public double f64;
+        [FieldOffset(0)] public long i64;
+        [FieldOffset(0)] public UIntPtr name_len;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_ascii_token
+    {
+        public byte* str_data;
+        public UIntPtr str_len;
+        public UIntPtr str_cap;
+        public byte type;
+        public bool negative;
+        public ufbxi_ascii_token_value value;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_ascii
+    {
+        public UIntPtr max_token_length;
+        public byte* src;
+        public byte* src_yield;
+        public byte* src_end;
+        public bool read_first_comment;
+        public bool found_version;
+        public bool parse_as_f32;
+        public bool src_is_retained;
+        public ufbxi_buf* retain_buf;
+        public ufbxi_buf* src_buf;
+        public ufbxi_ascii_token prev_token;
+        public ufbxi_ascii_token token;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_template
+    {
+        public byte* type;
+        public string sub_type;
+        public ufbx_props props;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_fbx_id_entry
+    {
+        public ulong fbx_id;
+        public uint element_id;
+        public uint user_id;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_ptr_fbx_id_entry
+    {
+        public ufbxi_ptr_id ptr_id;
+        public ulong fbx_id;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_fbx_attr_entry
+    {
+        public ulong node_fbx_id;
+        public ulong attr_fbx_id;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_tmp_connection
+    {
+        public ulong src, dst;
+        public string src_prop;
+        public string dst_prop;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_element_info
+    {
+        public ulong fbx_id;
+        public string name;
+        public ufbx_props props;
+        public void* dom_node; // Original: ufbx_dom_node *
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_tmp_bone_pose
+    {
+        public ulong bone_fbx_id;
+        public ufbx_matrix bone_to_world;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_tmp_mesh_texture
+    {
+        public string prop_name;
+        public uint* face_texture;
+        public UIntPtr num_faces;
+        public bool all_same;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_mesh_extra
+    {
+        public ufbxi_tmp_mesh_texture* texture_arr;
+        public UIntPtr texture_count;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_tmp_material_texture
+    {
+        public int material_id;
+        public int texture_id;
+        public string prop_name;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_texture_extra
+    {
+        public int* blend_modes;
+        public UIntPtr num_blend_modes;
+        public double* alphas; // Suponiendo ufbx_real = double
+        public UIntPtr num_alphas;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_obj_index_range
+    {
+        public ulong min_ix, max_ix;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_obj_mesh
+    {
+        public UIntPtr num_faces;
+        public UIntPtr num_indices;
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = UFBXI_OBJ_NUM_ATTRIBS)]
+        public ufbxi_obj_index_range[] vertex_range;
+
+        public void* fbx_node; // Original: ufbx_node *
+        public void* fbx_mesh; // Original: ufbx_mesh *
+        public ulong fbx_node_id;
+        public ulong fbx_mesh_id;
+        public uint usemtl_base;
+        public uint num_groups;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_obj_group_entry
+    {
+        public byte* name;
+        public uint local_id;
+        public uint mesh_id;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_obj_fast_indices
+    {
+        public ulong* indices;
+        public UIntPtr num_left;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_tmp_anim_stack
+    {
+        public byte* name;
+        public void* stack; // Original: ufbx_anim_stack *
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_file_content
+    {
+        public string absolute_filename;
+        public ufbx_blob content;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_obj_context
+    {
+        public string line;
+        public string* tokens;
+        public UIntPtr tokens_cap;
+        public UIntPtr num_tokens;
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = UFBXI_OBJ_NUM_ATTRIBS)]
+        public ufbxi_obj_fast_indices[] fast_indices;
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = UFBXI_OBJ_NUM_ATTRIBS_EXT)]
+        public UIntPtr[] vertex_count;
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = UFBXI_OBJ_NUM_ATTRIBS_EXT)]
+        public ufbxi_buf[] tmp_vertices;
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = UFBXI_OBJ_NUM_ATTRIBS_EXT)]
+        public ufbxi_buf[] tmp_indices;
+
+        public ufbxi_buf tmp_color_valid;
+        public ufbxi_buf tmp_faces;
+        public ufbxi_buf tmp_face_smoothing;
+        public ufbxi_buf tmp_face_group;
+        public ufbxi_buf tmp_face_group_infos;
+        public ufbxi_buf tmp_face_material;
+        public ufbxi_buf tmp_meshes;
+        public ufbxi_buf tmp_props;
+
+        public ufbxi_map group_map;
+        public UIntPtr read_progress;
+        public ufbxi_obj_mesh* mesh;
+
+        public ulong usemtl_fbx_id;
+        public uint usemtl_index;
+        public uint face_material;
+        public uint face_group;
+        public bool has_face_group;
+        public bool face_smoothing;
+        public bool has_face_smoothing;
+        public bool has_vertex_color;
+        public UIntPtr mrgb_vertex_count;
+        public bool eof;
+        public bool initialized;
+        public ufbx_blob mtllib_relative_path;
+
+        public void** tmp_materials; // Original: ufbx_material **
+        public UIntPtr tmp_materials_cap;
+
+        public string object_name; // 'object' es reservado en C#, usar 'object_name'
+        public string group;
+        public bool material_dirty;
+        public bool object_dirty;
+        public bool group_dirty;
+        public bool face_group_dirty;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_context
+    {
+        public void* error; // Original: ufbx_error
+        public uint version;
+        public int exporter; // Suponiendo ufbx_exporter = enum
+        public uint exporter_version;
+        public bool from_ascii;
+        public bool local_big_endian;
+        public bool file_big_endian;
+        public bool sure_fbx;
+        public bool retain_mesh_parts;
+        public bool read_legacy_settings;
+        public uint double_parse_flags;
+
+        public ufbx_load_opts opts;
+
+        public ulong data_offset;
+        public void* read_fn; // Original: ufbx_read_fn *
+        public void* skip_fn; // Original: ufbx_skip_fn *
+        public void* read_user;
+        public byte* read_buffer;
+        public UIntPtr read_buffer_size;
+        public byte* data_begin;
+        public byte* data;
+        public UIntPtr yield_size;
+        public UIntPtr data_size;
+
+        public ufbxi_allocator ator_result;
+        public ufbxi_allocator ator_tmp;
+
+        public ufbxi_map prop_type_map;
+        public ufbxi_map fbx_id_map;
+        public ufbxi_map ptr_fbx_id_map;
+        public ufbxi_map texture_file_map;
+        public ufbxi_map anim_stack_map;
+        public ufbxi_map fbx_attr_map;
+        public ufbxi_map node_prop_set;
+        public ufbxi_map dom_node_map;
+
+        public byte* tmp_arr;
+        public UIntPtr tmp_arr_size;
+        public byte* swap_arr;
+        public UIntPtr swap_arr_size;
+
+        public UIntPtr max_zero_indices;
+        public UIntPtr max_consecutive_indices;
+
+        public ufbxi_buf tmp;
+        public ufbxi_buf tmp_parse;
+        public ufbxi_buf tmp_stack;
+        public ufbxi_buf tmp_connections;
+        public ufbxi_buf tmp_node_ids;
+        public ufbxi_buf tmp_elements;
+        public ufbxi_buf tmp_element_offsets;
+        public ufbxi_buf tmp_element_fbx_ids;
+        public ufbxi_buf tmp_element_ptrs;
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = UFBX_ELEMENT_TYPE_COUNT)]
+        public ufbxi_buf[] tmp_typed_element_offsets;
+
+        public ufbxi_buf tmp_mesh_textures;
+        public ufbxi_buf tmp_full_weights;
+        public ufbxi_buf tmp_dom_nodes;
+        public ufbxi_buf tmp_element_id;
+        public ufbxi_buf tmp_ascii_spans;
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = UFBX_THREAD_GROUP_COUNT)]
+        public ufbxi_buf[] tmp_thread_parse;
+
+        public UIntPtr tmp_element_byte_offset;
+        public ufbxi_template* templates;
+        public UIntPtr num_templates;
+
+        public void* dom_parse_toplevel; // Original: ufbx_dom_node *
+        public UIntPtr dom_parse_num_children;
+        public uint* p_element_id;
+        public ufbxi_string_pool string_pool;
+        public ufbxi_buf result;
+
+        public ufbxi_node* top_nodes;
+        public UIntPtr top_nodes_len, top_nodes_cap;
+        public bool parsed_to_end;
+
+        public ufbxi_node* top_node;
+        public UIntPtr top_child_index;
+        public ufbxi_node top_child; // AVISO: Struct se define mas abajo, cuidado en interop de structs por valor
+        public bool has_next_child;
+
+        public uint* zero_indices;
+        public uint* consecutive_indices;
+
+        public UIntPtr progress_timer; // ptrdiff_t
+        public ulong progress_bytes_total;
+        public ulong progress_bytes_latest; // original: latest_progress_bytes
+        public UIntPtr progress_interval;
+
+        public void** element_extra_arr;
+        public UIntPtr element_extra_cap;
+        public byte* tmp_element_flag;
+
+        public void* close_fn; // Original: ufbx_close_fn *
+        public void* size_fn;  // Original: ufbx_size_fn *
+
+        public ufbxi_ascii ascii;
+        public ulong synthetic_id_counter;
+
+        public bool has_geometry_transform_nodes;
+        public bool has_scale_helper_nodes;
+        public bool retain_vertex_w;
+        public bool blender_full_weights;
+
+        public int mirror_axis; // ufbx_mirror_axis
+
+        public ufbxi_node root; // Struct anidado
+
+        public ufbx_scene scene;
+        public ufbxi_scene_imp* scene_imp;
+        public void* inflate_retain; // ufbx_inflate_retain *
+
+        public uint* tmp_mesh_consecutive_indices;
+        public ulong root_id;
+        public uint num_elements;
+
+        public ufbxi_node legacy_node;
+        public ulong legacy_implicit_anim_layer_id;
+
+        public ufbxi_file_content* file_content;
+        public UIntPtr num_file_content;
+
+        public long ktime_sec;
+        public double ktime_sec_double;
+        public bool eof;
+
+        public ufbxi_obj_context obj;
+
+        public ufbx_matrix axis_matrix;
+        public double unit_scale; // Suponiendo ufbx_real
+
+        public ufbxi_warnings warnings;
+        public bool deferred_failure;
+        public bool deferred_load;
+
+        public byte* load_filename;
+        public UIntPtr load_filename_len;
+
+        public bool parse_threaded;
+        public ufbxi_thread_pool thread_pool;
+        public byte* base64_table;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_file_context
+    {
+        public void* error; // Original: ufbx_error
+        public ufbxi_allocator* parent_ator;
+        public ufbxi_allocator ator;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_memory_stream
+    {
+        public void* data;
+        public UIntPtr size;
+        public UIntPtr position;
+        public void* close_cb; // Original: ufbx_close_memory_cb
+        public UIntPtr self_size;
+        public ufbxi_allocator* parent_ator;
+        public ufbxi_allocator local_ator;
+        public void* error; // ufbx_error
+        public byte data_copy_0; // Array flexible (char data_copy[])
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_xml_context
+    {
+        public void* error;
+        public ufbxi_allocator* ator;
+        public ufbxi_buf tmp_stack;
+        public ufbxi_buf result;
+        public ufbxi_xml_document* doc;
+        public void* read_fn; // ufbx_read_fn *
+        public void* read_user;
+        public byte* tok;
+        public UIntPtr tok_cap;
+        public UIntPtr tok_len;
+        public byte* pos;
+        public byte* pos_end;
+        public fixed byte data[4096];
+        public bool io_error;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_xml_load_opts
+    {
+        public ufbxi_allocator* ator;
+        public void* read_fn;
+        public void* read_user;
+        public byte* prefix;
+        public UIntPtr prefix_length;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_array_info
+    {
+        public byte type;
+        public byte flags;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_deflate_task
+    {
+        public UIntPtr encoded_size;
+        public UIntPtr src_elem_size;
+        public UIntPtr array_size;
+        public byte src_type;
+        public byte dst_type;
+        public byte arr_type;
+        public void* encoded_data;
+        public void* decoded_data;
+        public void* dst_data;
+        public void* inflate_retain; // ufbx_inflate_retain *
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_ascii_span
+    {
+        public byte* source;
+        public UIntPtr length;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_ascii_array_task
+    {
+        public void* arr_data;
+        public byte arr_type;
+        public UIntPtr arr_size;
+        public ufbxi_ascii_span* spans;
+        public UIntPtr num_spans;
+        public UIntPtr offset;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_dom_mapping
+    {
+        public UIntPtr node_ptr;
+        public void* dom_node; // ufbx_dom_node *
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_prop_type_name
+    {
+        public byte* name;
+        public int type; // Suponiendo ufbx_prop_type = enum
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_texture_file_entry
+    {
+        public byte* key;
+        public void* file; // ufbx_texture_file *
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_node_extra
+    {
+        public uint geometry_helper_id;
+        public uint scale_helper_id;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_scale_helper_prop
+    {
+        public byte* name;
+        public ufbx_vec3 default_value;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_tangent_layer
+    {
+        public ufbx_vertex_vec3 elem;
+        public uint index;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_id_group
+    {
+        public uint id;
+        public uint index;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_constraint_type
+    {
+        public int type; // ufbx_constraint_type
+        public byte* name;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_object_batch
+    {
+        public ufbxi_node** nodes;
+        public UIntPtr num_nodes;
+        public uint task_index;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_legacy_prop
+    {
+        public byte* prop_name;
+        public int prop_type; // ufbx_prop_type
+        public byte* node_name;
+        public byte* node_fmt;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_pre_connection
+    {
+        public void* src; // ufbx_element *
+        public void* dst;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_pre_node
+    {
+        public bool has_constant_scale;
+        public bool has_recursive_scale_helper;
+        public bool has_skin_deformer;
+        public ufbx_vec3 constant_scale;
+        public uint element_id;
+        public uint first_child;
+        public uint next_child;
+        public uint parent;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_pre_mesh
+    {
+        public bool has_skin_deformer;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_pre_anim_value
+    {
+        public bool has_constant_value;
+        public ufbx_vec3 constant_value;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_shader_mapping
+    {
+        public byte index;
+        public byte flags;
+        public byte transform;
+        public byte prop_len;
+        public byte* prop;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_shader_mapping_list
+    {
+        public ufbxi_shader_mapping* data;
+        public UIntPtr count;
+        public ufbxi_shader_mapping* features;
+        public UIntPtr feature_count;
+        public uint default_features;
+        public string texture_prefix;
+        public string texture_suffix;
+        public string texture_enabled_prefix;
+        public string texture_enabled_suffix;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_glossiness_remap
+    {
+        public byte feature;
+        public byte roughness_map;
+        public byte glossiness_map;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_constraint_prop
+    {
+        public int type; // ufbxi_constraint_prop_type
+        public byte* name;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_file_shader
+    {
+        public ulong shader_id;
+        public byte* shader_name;
+        public byte* input_name;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_ordered_texture
+    {
+        public void* texture; // ufbx_texture *
+        public UIntPtr order;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_anim_imp
+    {
+        public ufbxi_refcount refcount; // Definido más abajo
+        public ufbx_anim anim;
+        public uint magic;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_aperture_format
+    {
+        public ushort film_size_x;
+        public ushort film_size_y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_geometry_cache_imp
+    {
+        public ufbxi_refcount refcount;
+        public ufbx_geometry_cache cache; // Cuidado si este es un enum o struct
+        public uint magic;
+        public bool owned_by_scene;
+        public ufbxi_buf string_buf;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_cache_tmp_channel
+    {
+        public string name;
+        public string interpretation;
+        public uint sample_rate;
+        public uint start_time;
+        public uint end_time;
+        public uint current_time;
+        public uint consecutive_fails;
+        public bool try_load;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_cache_context
+    {
+        public void* error; // ufbx_error
+        public string filename;
+        public bool owned_by_scene;
+        public bool ignore_if_not_found;
+        public ufbx_geometry_cache_opts opts;
+        public ufbxi_allocator* ator_tmp;
+        public ufbxi_allocator ator_result; // Valor, no puntero
+        public ufbxi_buf result;
+        public ufbxi_buf tmp;
+        public ufbxi_buf tmp_stack;
+        public ufbxi_cache_tmp_channel* channels;
+        public UIntPtr num_channels;
+        public byte* tmp_arr;
+        public UIntPtr tmp_arr_size;
+        public ufbxi_string_pool string_pool;
+        public void* open_file_cb; // ufbx_open_file_cb
+        public double frames_per_second;
+        public string stream_filename;
+        public ufbx_stream stream;
+        public bool mc_for8;
+        public string xml_filename;
+        public uint xml_ticks_per_frame;
+        public int xml_type; // ufbxi_cache_xml_type
+        public int xml_format; // ufbxi_cache_xml_format
+        public string channel_name;
+        public byte* name_buf;
+        public UIntPtr name_cap;
+        public ulong file_offset;
+        public byte* pos;
+        public byte* pos_end;
+        public ufbx_geometry_cache cache;
+        public ufbxi_geometry_cache_imp* imp;
+        public fixed byte buffer[128];
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_cache_interpretation_name
+    {
+        public int interpretation; // ufbx_cache_interpretation
+        public byte* pattern;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_external_file
+    {
+        public int type; // ufbxi_external_file_type
+        public string filename;
+        public string absolute_filename;
+        public UIntPtr index;
+        public void* data;
+        public UIntPtr data_size;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_anim_layer_combine_ctx
+    {
+        public void* anim; // const ufbx_anim *
+        public void* element; // const ufbx_element *
+        public double time;
+        public int rotation_order; // ufbx_rotation_order
+        public bool has_rotation_order;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_prop_iter
+    {
+        public void* prop; // const ufbx_prop *
+        public void* prop_end;
+        public void* over; // const ufbx_prop_override *
+        public void* over_end;
+        public ufbx_prop tmp;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_eval_context
+    {
+        public byte* src_element;
+        public byte* dst_element;
+        public ufbxi_scene_imp* src_imp;
+        public ufbx_scene src_scene;
+        public ufbx_evaluate_opts opts;
+        public void* anim; // ufbx_anim *
+        public double time;
+        public void* error; // ufbx_error
+        public ufbxi_allocator ator_result;
+        public ufbxi_allocator ator_tmp;
+        public ufbxi_buf result;
+        public ufbxi_buf tmp;
+        public ufbx_scene scene;
+        public ufbxi_scene_imp* scene_imp;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_create_anim_context
+    {
+        public void* error; // ufbx_error
+        public ufbxi_allocator ator_result;
+        public ufbxi_buf result;
+        public void* scene; // const ufbx_scene *
+        public ufbx_anim_opts opts;
+        public ufbx_anim anim;
+        public ufbxi_anim_imp* imp;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_baked_anim_imp
+    {
+        public ufbxi_refcount refcount;
+        public ufbx_baked_anim bake;
+        public uint magic;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_bake_time
+    {
+        public double time;
+        public uint flags;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_bake_context
+    {
+        public void* error; // ufbx_error
+        public ufbxi_allocator ator_tmp;
+        public ufbxi_allocator ator_result;
+        public ufbxi_buf result;
+        public ufbxi_buf tmp;
+        public ufbxi_buf tmp_prop;
+        public ufbxi_buf tmp_times;
+        public ufbxi_buf tmp_bake_props;
+        public ufbxi_buf tmp_nodes;
+        public ufbxi_buf tmp_elements;
+        public ufbxi_buf tmp_props;
+        public ufbxi_buf tmp_bake_stack;
+
+        // ufbxi_bake_time_list se asume struct o pointer
+        public ufbxi_bake_time_list layer_weight_times;
+
+        public void** baked_nodes; // ufbx_baked_node **
+        public bool* nodes_to_bake;
+        public byte* tmp_arr;
+        public UIntPtr tmp_arr_size;
+        public void* scene; // const ufbx_scene *
+        public void* anim; // const ufbx_anim *
+        public ufbx_bake_opts opts;
+        public double ktime_offset;
+        public double time_begin;
+        public double time_end;
+        public double time_min;
+        public double time_max;
+        public ufbx_baked_anim bake;
+        public ufbxi_baked_anim_imp* imp;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_bake_prop
+    {
+        public uint sort_id;
+        public uint element_id;
+        public byte* prop_name;
+        public void* anim_value; // ufbx_anim_value *
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_line_curve_imp
+    {
+        public ufbxi_refcount refcount;
+        public ufbx_line_curve curve;
+        public uint magic;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_tessellate_curve_context
+    {
+        public void* error; // ufbx_error
+        public ufbx_tessellate_curve_opts opts;
+        public void* curve; // const ufbx_nurbs_curve *
+        public ufbxi_allocator ator_tmp;
+        public ufbxi_allocator ator_result;
+        public ufbxi_buf result;
+        public ufbx_line_curve line;
+        public ufbxi_line_curve_imp* imp;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_tessellate_surface_context
+    {
+        public void* error; // ufbx_error
+        public ufbx_tessellate_surface_opts opts;
+        public void* surface; // const ufbx_nurbs_surface *
+        public ufbxi_allocator ator_tmp;
+        public ufbxi_allocator ator_result;
+        public ufbxi_buf tmp;
+        public ufbxi_buf result;
+        public ufbxi_map position_map;
+        public ufbx_mesh mesh;
+        public void* imp; // ufbxi_mesh_imp *
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_kd_node
+    {
+        public double split; // Asumiendo ufbx_real = double
+        public uint index_plus_one;
+        public uint slow_left;
+        public uint slow_right;
+        public uint slow_end;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_ngon_context
+    {
+        public ufbx_face face;
+        public ufbx_vertex_vec3 positions;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
+        public ufbx_vec3[] axes;
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1 << (UFBXI_KD_FAST_DEPTH + 1))]
+        public ufbxi_kd_node[] kd_nodes;
+
+        public uint* kd_indices;
+        public ufbx_vec3 cur_axis_dir;
+        public ufbx_face cur_face;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_kd_triangle
+    {
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+        public double[] min_t;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+        public double[] max_t;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
+        public ufbx_vec2[] points;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
+        public uint[] indices;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_subdivide_input
+    {
+        public void* data;
+        public double weight; // ufbx_real
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_subdivide_layer_input
+    {
+        public void* sum_fn; // ufbxi_subdivide_sum_fn *
+        public void* sum_user;
+        public void* values;
+        public UIntPtr stride;
+        public uint* indices;
+        public bool check_split_data;
+        public bool ignore_indices;
+        public int boundary; // ufbx_subdivision_boundary
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_subdivide_layer_output
+    {
+        public void* values;
+        public UIntPtr num_values;
+        public uint* indices;
+        public UIntPtr num_indices;
+        public bool unique_per_vertex;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_subdivision_vertex_weights
+    {
+        public void* weights; // ufbx_subdivision_weight *
+        public UIntPtr num_weights;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_subdivide_context
+    {
+        public void* imp; // ufbxi_mesh_imp *
+        public void* error; // ufbx_error
+        public void* src_mesh_ptr; // ufbx_mesh *
+        public ufbx_mesh src_mesh;
+        public ufbx_mesh dst_mesh;
+        public void* topo; // ufbx_topo_edge *
+        public UIntPtr num_topo;
+        public ufbx_subdivide_opts opts;
+        public ufbxi_allocator ator_result;
+        public ufbxi_allocator ator_tmp;
+        public ufbxi_buf result;
+        public ufbxi_buf tmp;
+        public ufbxi_buf source;
+        public ufbxi_subdivide_input* inputs;
+        public UIntPtr inputs_cap;
+        public double* tmp_vertex_weights; // ufbx_real *
+        public void* tmp_weights; // ufbx_subdivision_weight *
+        public UIntPtr total_weights;
+        public UIntPtr max_vertex_weights;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_vertex_stream
+    {
+        public byte* begin;
+        public byte* ptr;
+        public UIntPtr vertex_size;
+        public UIntPtr packed_offset;
+    }
+
+    // ufbxi_geometry_cache_buffer Union Handler
+    [StructLayout(LayoutKind.Explicit)]
+    public unsafe struct ufbxi_geometry_cache_buffer_src
+    {
+        [FieldOffset(0)] public fixed double f64[UFBXI_GEOMETRY_CACHE_BUFFER_SIZE];
+        [FieldOffset(0)] public fixed float f32[UFBXI_GEOMETRY_CACHE_BUFFER_SIZE];
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_geometry_cache_buffer
+    {
+        public ufbxi_geometry_cache_buffer_src src;
+        // Asumiendo ufbx_real = double (C# 'fixed' no soporta typedefs)
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = UFBXI_GEOMETRY_CACHE_BUFFER_SIZE)]
+        public double[] dst;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_buf_padding
+    {
+        public UIntPtr original_pos;
+        public UIntPtr prev_padding;
+    }
+
+    // ufbxi_buf_chunk Union Handler
+    [StructLayout(LayoutKind.Explicit)]
+    public unsafe struct ufbxi_buf_chunk_union
+    {
+        [FieldOffset(0)] public UIntPtr magic;
+        [FieldOffset(0)] public void* align_0;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_buf_chunk
+    {
+        public ufbxi_buf_chunk* root;
+        public ufbxi_buf_chunk* prev;
+        public ufbxi_buf_chunk* next;
+
+        public ufbxi_buf_chunk_union u;
+
+        public UIntPtr size;
+        public UIntPtr pushed_pos;
+        public UIntPtr next_size;
+        public UIntPtr padding_pos;
+
+        public byte data_0; // Flexible array member
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_aa_node
+    {
+        public ufbxi_aa_node* left;
+        public ufbxi_aa_node* right;
+        public uint level;
+        public uint index;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_task
+    {
+        public void* data;
+        public byte* error; // const char *
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_thread_pool
+    {
+        public ufbx_thread_opts opts;
+        public ufbxi_allocator* ator;
+        public void* error; // ufbx_error *
+        public void* user_ptr;
+        public bool enabled;
+        public bool failed;
+        public byte* error_desc;
+        public uint start_index;
+        public uint execute_index;
+        public uint wait_index;
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = UFBX_THREAD_GROUP_COUNT)]
+        public ufbxi_task_group[] groups;
+
+        public uint group;
+        public uint num_tasks;
+        public ufbxi_task_imp* tasks;
+    }
+
+    // ufbxi_node Union Handler
+    [StructLayout(LayoutKind.Explicit)]
+    public unsafe struct ufbxi_node_union
+    {
+        [FieldOffset(0)] public ufbxi_value_array* array;
+        [FieldOffset(0)] public void* vals; // ufbxi_value *
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_node
+    {
+        public byte* name;
+        public uint num_children;
+        public byte name_len;
+        public ushort value_type_mask;
+        public ufbxi_node* children;
+        public ufbxi_node_union u;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_refcount
+    {
+        public ufbxi_refcount* parent;
+        public void* align_0;
+        public uint self_magic;
+        public uint type_magic;
+        public ufbxi_buf buf;
+        public ufbxi_allocator ator;
+        public fixed ulong zero_pad_pre[8];
+        public ufbxi_atomic_counter refcount;
+        public fixed ulong zero_pad_post[8];
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_xml_attrib
+    {
+        public string name;
+        public string value;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_xml_tag
+    {
+        public string name;
+        public string text;
+        public ufbxi_xml_attrib* attribs;
+        public UIntPtr num_attribs;
+        public ufbxi_xml_tag* children;
+        public UIntPtr num_children;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct ufbxi_xml_document
+    {
+        public ufbxi_xml_tag* root;
+        public ufbxi_buf buf;
     }
 
 
 
-    // typedef struct { alignas(std::atomic_size_t) char data[sizeof(std::atomic_size_t)]; } ufbxi_atomic_counter;
 
-    /*
-     typedef struct {
-	        uintptr_t ptr;
-	        uint64_t id;
-        } ufbxi_ptr_id;
-     */
-
-
-    /*
-     typedef struct {
-	    ufbxi_bigint_limb *limbs;
-	    uint32_t capacity;
-	    uint32_t length;
-    } ufbxi_bigint;
-    */
-
-
-    /*
-     typedef struct {
-
-	    // Number of bytes left to read from `read_fn()`
-	    size_t input_left;
-
-	    // User-supplied read callback
-	    ufbx_read_fn *read_fn;
-	    void *read_user;
-
-	    // Buffer to read to from `read_fn()`, may point to `local_buffer` if user
-	    // didn't supply a suitable buffer.
-	    char *buffer;
-	    size_t buffer_size;
-
-	    // Current chunk of data to process, either the initial buffer of input
-	    // or part of `buffer`.
-	    const char *chunk_begin;    // < Begin of the buffer
-	    const char *chunk_ptr;      // < Next bytes to read to `bits`
-	    const char *chunk_yield;    // < End of data before needing to call `ufbxi_bit_yield()`
-	    const char *chunk_end;      // < End of data before needing to call `ufbxi_bit_refill()`
-	    const char *chunk_real_end; // < Actual end of the data buffer
-
-	    // Amount of bytes read before the current chunk
-	    size_t num_read_before_chunk;
-	    uint64_t progress_bias;
-	    uint64_t progress_total;
-	    size_t progress_interval;
-
-	    uint64_t bits; // < Buffered bits
-	    size_t left;   // < Number of valid low bits in `bits`
-
-	    // Progress tracking, maybe `NULL` it not requested
-	    ufbx_progress_cb progress_cb;
-
-	    // When `progress_cb.fn()` returns `false` set the `cancelled` flag and
-	    // set the buffered bits to `cancel_bits`.
-	    uint64_t cancel_bits;
-	    bool cancelled;
-
-	    char local_buffer[256];
-    } ufbxi_bit_stream;
-     */
-
-
-    /*
-     typedef struct {
-	    ufbxi_huff_sym fast_sym[UFBXI_HUFF_FAST_SIZE];      // < Lookup from N bytes to symbol information
-	    ufbxi_huff_sym long_sym[UFBXI_HUFF_MAX_LONG_SYMS];  // < Fast long symbol lookup
-	    ufbxi_huff_sym sorted_to_sym[UFBXI_HUFF_MAX_VALUE]; // < Symbol information per sorted index
-
-	    uint32_t extra_shift_base[UFBXI_HUFF_MAX_EXTRA_SYMS]; // < [0:6] shift [16:32] base value
-	    uint16_t extra_mask[UFBXI_HUFF_MAX_EXTRA_SYMS];       // < Mask for extra bits
-
-	    uint16_t past_max_code[UFBXI_HUFF_MAX_BITS]; // < One past maximum code value per bit length
-	    int16_t code_to_sorted[UFBXI_HUFF_MAX_BITS]; // < Code to sorted symbol index per bit length
-	    uint32_t num_symbols;
-
-	    uint32_t end_of_block_bits;
-    } ufbxi_huff_tree;
-     */
-
-
-    /*
-     typedef struct {
-	    union {
-		    struct {
-			    ufbxi_huff_tree lit_length;
-			    ufbxi_huff_tree dist;
-		    };
-		    ufbxi_huff_tree trees[2];
-	    };
-	    uint32_t fast_bits;
-    } ufbxi_trees;
-     */
-
-
-    /*
-     typedef struct {
-	    bool initialized;
-	    ufbxi_trees static_trees;
-    } ufbxi_inflate_retain_imp;
-     */
-
-
-    /*
-     typedef struct {
-	    ufbxi_bit_stream stream;
-	    uint32_t fast_bits;
-
-	    char *out_begin;
-	    char *out_ptr;
-	    char *out_end;
-    } ufbxi_deflate_context;
-     */
-
-
-    /*
-     typedef struct {
-	    char *dst;
-	    size_t length;
-	    size_t pos;
-    } ufbxi_print_buffer;
-     */
-
-
-    /*
-     typedef struct {
-	    ufbx_error *error;
-	    size_t current_size;
-	    size_t max_size;
-	    size_t num_allocs;
-	    size_t max_allocs;
-	    size_t huge_size;
-	    size_t chunk_max;
-	    ufbx_allocator_opts ator;
-	    const char *name;
-    } ufbxi_allocator;
-     */
-
-
-    /*
-     typedef struct {
-	    ufbxi_allocator *ator;
-
-	    // Current chunks for normal and huge allocations.
-	    // Ordered buffers (`!ufbxi_buf.unordered`) never use `chunks[1]`
-	    ufbxi_buf_chunk *chunks[2];
-
-	    // Inline state for non-huge chunks
-	    size_t pos;  // < Next offset to allocate from
-	    size_t size; // < Size of the current chunk ie. `chunks[0]->size` (or 0 if `chunks[0] == NULL`)
-
-	    size_t num_items; // < Number of individual items pushed to the buffer
-
-	    size_t pushed_size; // < Cumulative size of pushed chunks, not tracked across pops
-
-	    bool unordered;  // < Does not support popping from the buffer
-	    bool clearable;  // < Supports clearing the whole buffer even if `unordered`
-    } ufbxi_buf;
-     */
-
-
-    /*
-     typedef struct {
-	    ufbxi_buf_chunk *chunk;
-	    size_t pos;
-	    size_t num_items;
-    } ufbxi_buf_state;
-     */
-
-
-    /*
-     typedef struct {
-	    ufbxi_allocator *ator;
-	    size_t data_size;
-
-	    void *items;
-	    uint64_t *entries;
-	    uint32_t mask;
-
-	    uint32_t capacity;
-	    uint32_t size;
-
-	    ufbxi_cmp_fn *cmp_fn;
-	    void *cmp_user;
-
-	    ufbxi_buf aa_buf;
-	    ufbxi_aa_node *aa_root;
-
-    } ufbxi_map;
-     */
-
-
-    /* // Esta ya ta hecha :D
-     typedef struct {
-	    uintptr_t ptr;
-	    uint64_t id;
-    } ufbxi_ptr_id;
-     */
-
-
-    /*
-     typedef struct {
-	    ufbx_error *error;
-	    ufbxi_buf *result;
-	    ufbxi_buf tmp_stack;
-	    uint32_t deferred_element_id_plus_one;
-	    // Separate lists for specific and non-specific warnings
-	    ufbx_warning *prev_warnings[UFBX_WARNING_TYPE_COUNT][2];
-    } ufbxi_warnings;
-     */
-
-
-    /*
-     typedef struct {
-	    ufbx_error *error;
-	    ufbxi_buf buf; // < Buffer for the actual string data
-	    ufbxi_map map; // < Map of `ufbxi_string`
-	    size_t initial_size; // < Number of initial entries
-	    char  *temp_str; // < Temporary string buffer of `temp_cap`
-	    size_t temp_cap; // < Capacity of the temporary buffer
-	    ufbx_unicode_error_handling error_handling;
-	    ufbxi_warnings *warnings;
-    } ufbxi_string_pool;
-     */
-
-
-    /*
-     typedef struct {
-	    const char *raw_data; // < UTF-8 data follows at `raw_length+1` if `utf8_length > 0`
-	    uint32_t raw_length;  // < Length of the non-sanitized original string
-	    uint32_t utf8_length; // < Length of sanitized UTF-8 string (or zero)
-    } ufbxi_sanitized_string;
-     */
-
-
-    /*
-     typedef struct {
-        ufbxi_task task;
-        ufbxi_task_fn* fn;
-    } ufbxi_task_imp;
-    */
-
-
-    /*
-     typedef struct {
-        uint32_t max_index;
-        uint32_t wait_index;
-    } ufbxi_task_group;
-    */
-
-
-    /*
-    typedef struct {
-	    void *data;  // < Pointer to `size` bool/int32_t/int64_t/float/double elements
-	    size_t size; // < Number of elements
-	    char type;   // < FBX type code: b/i/l/f/d
-    } ufbxi_value_array;
-    */
-
-
-    /*
-     typedef struct {
-        ufbxi_refcount refcount;
-        ufbx_scene scene;
-        uint32_t magic;
-
-        ufbxi_buf string_buf;
-    }
-    ufbxi_scene_imp;
-    */
-
-
-    /*
-     typedef struct {
-	    // Semantic string data and length eg. for a string token
-	    // this string doesn't include the quotes.
-	    char *str_data;
-	    size_t str_len;
-	    size_t str_cap;
-
-	    // Type of the token, either single character such as '{' or ':'
-	    // or one of UFBXI_ASCII_* defines.
-	    char type;
-
-	    // Sign for integer if negative.
-	    bool negative;
-
-	    // Parsed semantic value
-	    union {
-		    double f64;
-		    int64_t i64;
-		    size_t name_len;
-	    } value;
-    } ufbxi_ascii_token;
-    */
-
-    /*
-     typedef struct {
-	    size_t max_token_length;
-
-	    const char *src;
-	    const char *src_yield;
-	    const char *src_end;
-
-	    bool read_first_comment;
-	    bool found_version;
-	    bool parse_as_f32;
-	    bool src_is_retained;
-
-	    ufbxi_buf *retain_buf;
-	    ufbxi_buf *src_buf;
-
-	    ufbxi_ascii_token prev_token;
-	    ufbxi_ascii_token token;
-    } ufbxi_ascii;
-     */
-
-    /*
-     typedef struct {
-	    const char *type;
-	    ufbx_string sub_type;
-	    ufbx_props props;
-    } ufbxi_template;
-
-    typedef struct {
-	    uint64_t fbx_id;
-	    uint32_t element_id;
-	    uint32_t user_id;
-    } ufbxi_fbx_id_entry;
-
-    typedef struct {
-	    ufbxi_ptr_id ptr_id;
-	    uint64_t fbx_id;
-    } ufbxi_ptr_fbx_id_entry;
-
-    typedef struct {
-	    uint64_t node_fbx_id;
-	    uint64_t attr_fbx_id;
-    } ufbxi_fbx_attr_entry;
-
-    // Temporary connection before we resolve the element pointers
-    typedef struct {
-	    uint64_t src, dst;
-	    ufbx_string src_prop;
-	    ufbx_string dst_prop;
-    } ufbxi_tmp_connection;
-
-    typedef struct {
-	    uint64_t fbx_id;
-	    ufbx_string name;
-	    ufbx_props props;
-	    ufbx_dom_node *dom_node;
-    } ufbxi_element_info;
-
-    typedef struct {
-	    uint64_t bone_fbx_id;
-	    ufbx_matrix bone_to_world;
-    } ufbxi_tmp_bone_pose;
-
-    typedef struct {
-	    ufbx_string prop_name;
-	    uint32_t *face_texture;
-	    size_t num_faces;
-	    bool all_same;
-    } ufbxi_tmp_mesh_texture;
-
-    typedef struct {
-	    ufbxi_tmp_mesh_texture *texture_arr;
-	    size_t texture_count;
-    } ufbxi_mesh_extra;
-
-    typedef struct {
-	    int32_t material_id;
-	    int32_t texture_id;
-	    ufbx_string prop_name;
-    } ufbxi_tmp_material_texture;
-
-    typedef struct {
-	    int32_t *blend_modes;
-	    size_t num_blend_modes;
-
-	    ufbx_real *alphas;
-	    size_t num_alphas;
-    } ufbxi_texture_extra;
-     */
-
-    /*
-     typedef struct {
-		uint64_t min_ix, max_ix;
-	} ufbxi_obj_index_range;
-
-	typedef struct {
-		size_t num_faces;
-		size_t num_indices;
-		ufbxi_obj_index_range vertex_range[UFBXI_OBJ_NUM_ATTRIBS];
-
-		ufbx_node *fbx_node;
-		ufbx_mesh *fbx_mesh;
-
-		uint64_t fbx_node_id;
-		uint64_t fbx_mesh_id;
-
-		uint32_t usemtl_base;
-
-		uint32_t num_groups;
-	} ufbxi_obj_mesh;
-
-	typedef struct {
-		const char *name;
-		uint32_t local_id;
-		uint32_t mesh_id;
-	} ufbxi_obj_group_entry;
-
-	typedef struct {
-		uint64_t *indices;
-		size_t num_left;
-	} ufbxi_obj_fast_indices;
-
-	// Temporary pointer to a `ufbx_anim_stack` by name used to patch start/stop
-	// time from "Takes" if necessary.
-	typedef struct {
-		const char *name;
-		ufbx_anim_stack *stack;
-	} ufbxi_tmp_anim_stack;
-
-	typedef struct {
-		ufbx_string absolute_filename;
-		ufbx_blob content;
-	} ufbxi_file_content;
-
-	typedef struct {
-
-		// Current line and tokens.
-		// NOTE: `line` and `tokens` are not NULL-terminated nor UTF-8!
-		// `line` is guaranteed to be terminated by a `\n`
-		ufbx_string line;
-		ufbx_string *tokens;
-		size_t tokens_cap;
-		size_t num_tokens;
-
-		ufbxi_obj_fast_indices fast_indices[UFBXI_OBJ_NUM_ATTRIBS];
-
-		size_t vertex_count[UFBXI_OBJ_NUM_ATTRIBS_EXT];
-		ufbxi_buf tmp_vertices[UFBXI_OBJ_NUM_ATTRIBS_EXT];
-		ufbxi_buf tmp_indices[UFBXI_OBJ_NUM_ATTRIBS_EXT];
-		ufbxi_buf tmp_color_valid;
-		ufbxi_buf tmp_faces;
-		ufbxi_buf tmp_face_smoothing;
-		ufbxi_buf tmp_face_group;
-		ufbxi_buf tmp_face_group_infos;
-		ufbxi_buf tmp_face_material;
-		ufbxi_buf tmp_meshes;
-		ufbxi_buf tmp_props;
-
-		ufbxi_map group_map;
-
-		size_t read_progress;
-
-		ufbxi_obj_mesh *mesh;
-
-		uint64_t usemtl_fbx_id;
-		uint32_t usemtl_index;
-
-		uint32_t face_material;
-
-		uint32_t face_group;
-		bool has_face_group;
-
-		bool face_smoothing;
-		bool has_face_smoothing;
-
-		bool has_vertex_color;
-		size_t mrgb_vertex_count;
-
-		bool eof;
-		bool initialized;
-
-		ufbx_blob mtllib_relative_path;
-
-		ufbx_material **tmp_materials;
-		size_t tmp_materials_cap;
-
-		ufbx_string object;
-		ufbx_string group;
-		bool material_dirty;
-		bool object_dirty;
-		bool group_dirty;
-		bool face_group_dirty;
-
-	} ufbxi_obj_context;
-
-	typedef struct {
-
-		ufbx_error error;
-		uint32_t version;
-		ufbx_exporter exporter;
-		uint32_t exporter_version;
-		bool from_ascii;
-		bool local_big_endian;
-		bool file_big_endian;
-		bool sure_fbx;
-		bool retain_mesh_parts;
-		bool read_legacy_settings;
-		uint32_t double_parse_flags;
-
-		ufbx_load_opts opts;
-
-		// IO
-		uint64_t data_offset;
-		ufbx_read_fn *read_fn;
-		ufbx_skip_fn *skip_fn;
-		void *read_user;
-
-		char *read_buffer;
-		size_t read_buffer_size;
-
-		const char *data_begin;
-		const char *data;
-		size_t yield_size;
-		size_t data_size;
-
-		// Allocators
-		ufbxi_allocator ator_result;
-		ufbxi_allocator ator_tmp;
-
-		// Temporary maps
-		ufbxi_map prop_type_map;     // < `ufbxi_prop_type_name` Property type to enum
-		ufbxi_map fbx_id_map;        // < `ufbxi_fbx_id_entry` FBX ID to local ID
-		ufbxi_map ptr_fbx_id_map;    // < `ufbxi_ptr_fbx_id_entry` Pointer/negative ID to FBX ID
-		ufbxi_map texture_file_map;  // < `ufbxi_texture_file_entry` absolute raw filename to element ID
-		ufbxi_map anim_stack_map;    // < `ufbxi_tmp_anim_stack` anim stacks by name before finalization
-
-		// 6x00 specific maps
-		ufbxi_map fbx_attr_map;  // < `ufbxi_fbx_attr_entry` Node ID to attrib ID
-		ufbxi_map node_prop_set; // < `const char*` Node property names
-
-		// DOM nodes
-		ufbxi_map dom_node_map; // < `const char*` Node property names
-
-		// Temporary array
-		char *tmp_arr;
-		size_t tmp_arr_size;
-		char *swap_arr;
-		size_t swap_arr_size;
-
-		// Generated index buffers
-		size_t max_zero_indices;
-		size_t max_consecutive_indices;
-
-		// Temporary buffers
-		ufbxi_buf tmp;
-		ufbxi_buf tmp_parse;
-		ufbxi_buf tmp_stack;
-		ufbxi_buf tmp_connections;
-		ufbxi_buf tmp_node_ids;
-		ufbxi_buf tmp_elements;
-		ufbxi_buf tmp_element_offsets;
-		ufbxi_buf tmp_element_fbx_ids;
-		ufbxi_buf tmp_element_ptrs;
-		ufbxi_buf tmp_typed_element_offsets[UFBX_ELEMENT_TYPE_COUNT];
-		ufbxi_buf tmp_mesh_textures;
-		ufbxi_buf tmp_full_weights;
-		ufbxi_buf tmp_dom_nodes;
-		ufbxi_buf tmp_element_id;
-		ufbxi_buf tmp_ascii_spans;
-		ufbxi_buf tmp_thread_parse[UFBX_THREAD_GROUP_COUNT];
-		size_t tmp_element_byte_offset;
-
-		ufbxi_template *templates;
-		size_t num_templates;
-
-		ufbx_dom_node *dom_parse_toplevel;
-		size_t dom_parse_num_children;
-
-		uint32_t *p_element_id;
-
-		// String pool
-		ufbxi_string_pool string_pool;
-
-		// Result buffers, these are retained in `ufbx_scene` returned to user.
-		ufbxi_buf result;
-
-		// Top-level state
-		ufbxi_node *top_nodes;
-		size_t top_nodes_len, top_nodes_cap;
-		bool parsed_to_end;
-
-		// "Focused" top-level node and child index, if `top_child_index == SIZE_MAX`
-		// the children are parsed on demand.
-		ufbxi_node *top_node;
-		size_t top_child_index;
-		ufbxi_node top_child;
-		bool has_next_child;
-
-		// Shared consecutive and all-zero index buffers
-		uint32_t *zero_indices;
-		uint32_t *consecutive_indices;
-
-		// Call progress function periodically
-		ptrdiff_t progress_timer;
-		uint64_t progress_bytes_total;
-		uint64_t latest_progress_bytes;
-		size_t progress_interval;
-
-		// Extra data on the side of elements
-		void **element_extra_arr;
-		size_t element_extra_cap;
-
-		// Temporary per-element flags
-		uint8_t *tmp_element_flag;
-
-		// IO (cold)
-		ufbx_close_fn *close_fn;
-		ufbx_size_fn *size_fn;
-
-		ufbxi_ascii ascii;
-
-		uint64_t synthetic_id_counter;
-
-		bool has_geometry_transform_nodes;
-		bool has_scale_helper_nodes;
-		bool retain_vertex_w;
-		bool blender_full_weights;
-
-		ufbx_mirror_axis mirror_axis;
-
-		ufbxi_node root;
-
-		ufbx_scene scene;
-		ufbxi_scene_imp *scene_imp;
-
-		ufbx_inflate_retain *inflate_retain;
-
-		// Per-mesh consecutive indices used by `ufbxi_flip_winding()`.
-		uint32_t *tmp_mesh_consecutive_indices;
-
-		uint64_t root_id;
-		uint32_t num_elements;
-
-		ufbxi_node legacy_node;
-		uint64_t legacy_implicit_anim_layer_id;
-
-		ufbxi_file_content *file_content;
-		size_t num_file_content;
-
-		int64_t ktime_sec;
-		double ktime_sec_double;
-
-		bool eof;
-		ufbxi_obj_context obj;
-
-		ufbx_matrix axis_matrix;
-		ufbx_real unit_scale;
-
-		ufbxi_warnings warnings;
-
-		bool deferred_failure;
-		bool deferred_load;
-
-		const char *load_filename;
-		size_t load_filename_len;
-
-		bool parse_threaded;
-		ufbxi_thread_pool thread_pool;
-
-		uint8_t *base64_table;
-
-	} ufbxi_context;
-     */
-
-
-    /*
-	 typedef struct {
-		ufbx_error error;
-
-		ufbxi_allocator *parent_ator;
-		ufbxi_allocator ator;
-	} ufbxi_file_context;
-	 */
-
-    /*
-	 typedef struct {
-		const void *data;
-		size_t size;
-		size_t position;
-		ufbx_close_memory_cb close_cb;
-
-		// Own allocation information
-		size_t self_size;
-		ufbxi_allocator *parent_ator;
-		ufbxi_allocator local_ator;
-		ufbx_error error;
-		char data_copy[];
-	} ufbxi_memory_stream;
-	 */
-
-    /*
-	 typedef struct {
-		ufbx_error error;
-
-		ufbxi_allocator *ator;
-
-		ufbxi_buf tmp_stack;
-		ufbxi_buf result;
-
-		ufbxi_xml_document *doc;
-
-		ufbx_read_fn *read_fn;
-		void *read_user;
-
-		char *tok;
-		size_t tok_cap;
-		size_t tok_len;
-
-		const char *pos, *pos_end;
-		char data[4096];
-
-		bool io_error;
-	} ufbxi_xml_context;
-	 */
-
-    /*
-	 typedef struct {
-		ufbxi_allocator *ator;
-		ufbx_read_fn *read_fn;
-		void *read_user;
-		const char *prefix;
-		size_t prefix_length;
-	} ufbxi_xml_load_opts;
-	 */
-
-    /*
-	 typedef struct {
-		char type;      // < FBX type code of the array: b,i,l,f,d (or 'r' meaning ufbx_real '-' ignore, 's'/'S' for strings, 'C' for content)
-		uint8_t flags;  // < Combination of `ufbxi_array_flags`
-	} ufbxi_array_info;
-	 */
-
-    /*
-	 typedef struct {
-		size_t encoded_size;
-		size_t src_elem_size;
-		size_t array_size;
-		char src_type;
-		char dst_type;
-		char arr_type;
-		const void *encoded_data;
-		void *decoded_data;
-		void *dst_data;
-		ufbx_inflate_retain *inflate_retain;
-	} ufbxi_deflate_task;
-	 */
-
-    /*
-	 typedef struct {
-		const char *source;
-		size_t length;
-	} ufbxi_ascii_span;
-	 */
-
-    /*
-	 typedef struct {
-		void *arr_data;
-		char arr_type;
-		size_t arr_size;
-		const ufbxi_ascii_span *spans;
-		size_t num_spans;
-		size_t offset;
-	} ufbxi_ascii_array_task;
-	 */
-
-    /*
-	 typedef struct {
-		uintptr_t node_ptr;
-		ufbx_dom_node *dom_node;
-	} ufbxi_dom_mapping;
-	 */
-
-    /*
-	 typedef struct {
-		const char *name;
-		ufbx_prop_type type;
-	} ufbxi_prop_type_name;
-	 */
-
-    /*
-	 typedef struct {
-		const char *key;
-		ufbx_texture_file *file;
-	} ufbxi_texture_file_entry;
-	 */
-
-    /*
-	 typedef struct {
-		uint32_t geometry_helper_id;
-		uint32_t scale_helper_id;
-	} ufbxi_node_extra;
-	 */
-
-    /*
-	 typedef struct {
-		const char *name;
-		ufbx_vec3 default_value;
-	} ufbxi_scale_helper_prop;
-	 */
-
-    /*
-	 typedef struct {
-		ufbx_vertex_vec3 elem;
-		uint32_t index;
-	} ufbxi_tangent_layer;
-	 */
-
-    /*
-	 typedef struct {
-		uint32_t id, index;
-	} ufbxi_id_group;
-	 */
-
-    /*
-	 typedef struct {
-		ufbx_constraint_type type;
-		const char *name;
-	} ufbxi_constraint_type;
-	*/
-
-    /*
-	 typedef struct {
-		ufbxi_node **nodes;
-		size_t num_nodes;
-		uint32_t task_index;
-	} ufbxi_object_batch;
-	 */
-
-    /*
-	 typedef struct {
-		const char *prop_name;
-		ufbx_prop_type prop_type;
-		const char *node_name;
-		const char *node_fmt;
-	} ufbxi_legacy_prop;
-	*/
-
-    /*
-	 typedef struct {
-		ufbx_element *src, *dst;
-	} ufbxi_pre_connection;
-
-	typedef struct {
-		bool has_constant_scale;
-		bool has_recursive_scale_helper;
-		bool has_skin_deformer;
-		ufbx_vec3 constant_scale;
-		uint32_t element_id;
-		uint32_t first_child;
-		uint32_t next_child;
-		uint32_t parent;
-	} ufbxi_pre_node;
-
-	typedef struct {
-		bool has_skin_deformer;
-	} ufbxi_pre_mesh;
-
-	typedef struct {
-		bool has_constant_value;
-		ufbx_vec3 constant_value;
-	} ufbxi_pre_anim_value;
-	*/
-
-    /*
-	 typedef struct {
-		uint8_t index;     // < `ufbx_material_(fbx|pbr)_map`
-		uint8_t flags;     // < Combination of `ufbxi_shader_mapping_flag`
-		uint8_t transform; // < `ufbxi_mat_transform`
-		uint8_t prop_len;  // < Length of `prop` not including NULL terminator
-		const char *prop;  // < Name of FBX material property or shader mapping
-	} ufbxi_shader_mapping;
-
-	typedef struct {
-		const ufbxi_shader_mapping *data;
-		size_t count;
-		const ufbxi_shader_mapping *features;
-		size_t feature_count;
-		uint32_t default_features;
-		ufbx_string texture_prefix;
-		ufbx_string texture_suffix;
-		ufbx_string texture_enabled_prefix;
-		ufbx_string texture_enabled_suffix;
-	} ufbxi_shader_mapping_list;
-	 */
-
-    /*
-	 typedef struct {
-		uint8_t feature;
-		uint8_t roughness_map;
-		uint8_t glossiness_map;
-	} ufbxi_glossiness_remap;
-	 */
-
-    /*
-	typedef struct {
-		ufbxi_constraint_prop_type type;
-		const char *name;
-	} ufbxi_constraint_prop;
-	*/
-
-    /*
-    typedef struct {
-        uint64_t shader_id;
-        const char *shader_name;
-        const char *input_name;
-    } ufbxi_file_shader;
-    */
-
-    /*
-    typedef struct {
-        ufbx_texture *texture;
-        size_t order;
-    } ufbxi_ordered_texture;
-    */
-
-    /*
-    typedef struct {
-        ufbxi_refcount refcount;
-        ufbx_anim anim;
-        uint32_t magic;
-    } ufbxi_anim_imp;
-    */
-
-    /*
-    typedef struct {
-        // 1/1000 decimal fixed point for size
-        uint16_t film_size_x, film_size_y;
-    } ufbxi_aperture_format;
-    */
-
-    /*
-    typedef struct {
-        ufbxi_refcount refcount;
-        ufbx_geometry_cache cache;
-        uint32_t magic;
-        bool owned_by_scene;
-
-        ufbxi_buf string_buf;
-    } ufbxi_geometry_cache_imp;
-    */
-
-    /*
-    typedef struct {
-        ufbx_string name;
-        ufbx_string interpretation;
-        uint32_t sample_rate;
-        uint32_t start_time;
-        uint32_t end_time;
-        uint32_t current_time;
-        uint32_t consecutive_fails;
-        bool try_load;
-    } ufbxi_cache_tmp_channel;
-    */
-
-    /*
-    typedef struct {
-        ufbx_error error;
-        ufbx_string filename;
-        bool owned_by_scene;
-        bool ignore_if_not_found;
-
-        ufbx_geometry_cache_opts opts;
-
-        ufbxi_allocator *ator_tmp;
-        ufbxi_allocator ator_result;
-
-        ufbxi_buf result;
-        ufbxi_buf tmp;
-        ufbxi_buf tmp_stack;
-
-        ufbxi_cache_tmp_channel *channels;
-        size_t num_channels;
-
-        // Temporary array
-        char *tmp_arr;
-        size_t tmp_arr_size;
-
-        ufbxi_string_pool string_pool;
-
-        ufbx_open_file_cb open_file_cb;
-
-        double frames_per_second;
-
-        ufbx_string stream_filename;
-        ufbx_stream stream;
-
-        bool mc_for8;
-
-        ufbx_string xml_filename;
-        uint32_t xml_ticks_per_frame;
-        ufbxi_cache_xml_type xml_type;
-        ufbxi_cache_xml_format xml_format;
-
-        ufbx_string channel_name;
-
-        char *name_buf;
-        size_t name_cap;
-
-        uint64_t file_offset;
-        const char *pos, *pos_end;
-
-        ufbx_geometry_cache cache;
-        ufbxi_geometry_cache_imp *imp;
-
-        char buffer[128];
-    } ufbxi_cache_context;
-    */
-
-    /*
-    typedef struct {
-        ufbx_cache_interpretation interpretation;
-        const char *pattern;
-    } ufbxi_cache_interpretation_name;
-    */
-
-    /*
-    typedef struct {
-        ufbxi_refcount refcount;
-        uint32_t magic;
-        bool owned_by_scene;
-    } ufbxi_geometry_cache_imp;
-    */
-
-    /*
-    typedef struct {
-        ufbxi_external_file_type type;
-        ufbx_string filename;
-        ufbx_string absolute_filename;
-        size_t index;
-        void *data;
-        size_t data_size;
-    } ufbxi_external_file;
-    */
-
-    /*
-	typedef struct ufbxi_anim_layer_combine_ctx {
-		const ufbx_anim *anim;
-		const ufbx_element *element;
-		double time;
-		ufbx_rotation_order rotation_order;
-		bool has_rotation_order;
-	} ufbxi_anim_layer_combine_ctx;
-	*/
-
-    /*
-    typedef struct {
-        const ufbx_prop *prop, *prop_end;
-        const ufbx_prop_override *over, *over_end;
-        ufbx_prop tmp;
-    } ufbxi_prop_iter;
-    */
-
-    /*
-    typedef struct {
-        char *src_element;
-        char *dst_element;
-
-        ufbxi_scene_imp *src_imp;
-        ufbx_scene src_scene;
-        ufbx_evaluate_opts opts;
-        ufbx_anim *anim;
-        double time;
-
-        ufbx_error error;
-
-        // Allocators
-        ufbxi_allocator ator_result;
-        ufbxi_allocator ator_tmp;
-
-        ufbxi_buf result;
-        ufbxi_buf tmp;
-
-        ufbx_scene scene;
-
-        ufbxi_scene_imp *scene_imp;
-    } ufbxi_eval_context;
-    */
-
-    /*
-    typedef struct {
-        ufbx_error error;
-        ufbxi_allocator ator_result;
-        ufbxi_buf result;
-        const ufbx_scene *scene;
-        ufbx_anim_opts opts;
-
-        ufbx_anim anim;
-        ufbxi_anim_imp *imp;
-    } ufbxi_create_anim_context;
-    */
-
-    /*
-    typedef struct {
-        ufbxi_refcount refcount;
-        ufbx_baked_anim bake;
-        uint32_t magic;
-    } ufbxi_baked_anim_imp;
-    */
-
-    /*
-    typedef struct {
-        double time;
-        uint32_t flags;
-    } ufbxi_bake_time;
-    */
-
-    /*
-    typedef struct {
-        ufbx_error error;
-        ufbxi_allocator ator_tmp;
-        ufbxi_allocator ator_result;
-
-        ufbxi_buf result;
-        ufbxi_buf tmp;
-        ufbxi_buf tmp_prop;
-        ufbxi_buf tmp_times;
-        ufbxi_buf tmp_bake_props;
-        ufbxi_buf tmp_nodes;
-        ufbxi_buf tmp_elements;
-        ufbxi_buf tmp_props;
-        ufbxi_buf tmp_bake_stack;
-
-        ufbxi_bake_time_list layer_weight_times;
-
-        ufbx_baked_node **baked_nodes;
-        bool *nodes_to_bake;
-
-        char *tmp_arr;
-        size_t tmp_arr_size;
-
-        const ufbx_scene *scene;
-        const ufbx_anim *anim;
-        ufbx_bake_opts opts;
-
-        double ktime_offset;
-
-        double time_begin;
-        double time_end;
-        double time_min;
-        double time_max;
-
-        ufbx_baked_anim bake;
-        ufbxi_baked_anim_imp *imp;
-    } ufbxi_bake_context;
-    */
-
-    /*
-    typedef struct {
-        uint32_t sort_id;
-        uint32_t element_id;
-        const char *prop_name;
-        ufbx_anim_value *anim_value;
-    } ufbxi_bake_prop;
-    */
-
-    /*
-    typedef struct {
-        ufbxi_refcount refcount;
-        ufbx_line_curve curve;
-        uint32_t magic;
-    } ufbxi_line_curve_imp;
-    */
-
-    /*
-    typedef struct {
-        ufbx_error error;
-
-        ufbx_tessellate_curve_opts opts;
-
-        const ufbx_nurbs_curve *curve;
-
-        ufbxi_allocator ator_tmp;
-        ufbxi_allocator ator_result;
-
-        ufbxi_buf result;
-
-        ufbx_line_curve line;
-
-        ufbxi_line_curve_imp *imp;
-
-    } ufbxi_tessellate_curve_context;
-    */
-
-    /*
-    typedef struct {
-        ufbx_error error;
-
-        ufbx_tessellate_surface_opts opts;
-
-        const ufbx_nurbs_surface *surface;
-
-        ufbxi_allocator ator_tmp;
-        ufbxi_allocator ator_result;
-
-        ufbxi_buf tmp;
-        ufbxi_buf result;
-
-        ufbxi_map position_map;
-
-        ufbx_mesh mesh;
-
-        ufbxi_mesh_imp *imp;
-
-    } ufbxi_tessellate_surface_context;
-    */
-
-    /*
-    typedef struct {
-        ufbx_real split;
-        uint32_t index_plus_one; // 0 for empty
-        uint32_t slow_left;
-        uint32_t slow_right;
-        uint32_t slow_end;
-    } ufbxi_kd_node;
-    */
-
-    /*
-    typedef struct {
-        ufbx_face face;
-        ufbx_vertex_vec3 positions;
-        ufbx_vec3 axes[3];
-        ufbxi_kd_node kd_nodes[1 << (UFBXI_KD_FAST_DEPTH + 1)];
-        uint32_t *kd_indices;
-
-        // Temporary
-        ufbx_vec3 cur_axis_dir;
-        ufbx_face cur_face;
-    } ufbxi_ngon_context;
-    */
-
-    /*
-    typedef struct {
-        ufbx_real min_t[2];
-        ufbx_real max_t[2];
-        ufbx_vec2 points[3];
-        uint32_t indices[3];
-    } ufbxi_kd_triangle;
-    */
-
-    /*
-    typedef struct {
-        const void *data;
-        ufbx_real weight;
-    } ufbxi_subdivide_input;
-    */
-
-    /*
-    typedef struct {
-        ufbxi_subdivide_sum_fn *sum_fn;
-        void *sum_user;
-
-        const void *values;
-        size_t stride;
-
-        const uint32_t *indices;
-
-        bool check_split_data;
-        bool ignore_indices;
-
-        ufbx_subdivision_boundary boundary;
-
-    } ufbxi_subdivide_layer_input;
-    */
-
-    /*
-    typedef struct {
-        void *values;
-        size_t num_values;
-        uint32_t *indices;
-        size_t num_indices;
-        bool unique_per_vertex;
-    } ufbxi_subdivide_layer_output;
-    */
-
-    /*
-    typedef struct {
-        ufbx_subdivision_weight *weights;
-        size_t num_weights;
-    } ufbxi_subdivision_vertex_weights;
-    */
-
-    /*
-    typedef struct {
-        ufbxi_mesh_imp *imp;
-
-        ufbx_error error;
-
-        ufbx_mesh *src_mesh_ptr;
-        ufbx_mesh src_mesh;
-        ufbx_mesh dst_mesh;
-        ufbx_topo_edge *topo;
-        size_t num_topo;
-
-        ufbx_subdivide_opts opts;
-
-        ufbxi_allocator ator_result;
-        ufbxi_allocator ator_tmp;
-
-        ufbxi_buf result;
-        ufbxi_buf tmp;
-        ufbxi_buf source;
-
-        ufbxi_subdivide_input *inputs;
-        size_t inputs_cap;
-
-        ufbx_real *tmp_vertex_weights;
-        ufbx_subdivision_weight *tmp_weights;
-        size_t total_weights;
-        size_t max_vertex_weights;
-
-    } ufbxi_subdivide_context;
-    */
-
-    /*
-    typedef struct {
-        char *begin, *ptr;
-        size_t vertex_size;
-        size_t packed_offset;
-    } ufbxi_vertex_stream;
-    */
-
-    /*
-	 typedef struct {
-		union {
-			double f64[UFBXI_GEOMETRY_CACHE_BUFFER_SIZE];
-			float f32[UFBXI_GEOMETRY_CACHE_BUFFER_SIZE];
-		} src;
-		ufbx_real dst[UFBXI_GEOMETRY_CACHE_BUFFER_SIZE];
-	} ufbxi_geometry_cache_buffer;
-	 */
-
-
-
-
-
-
-
-
-
-    // ------------------------------------- NO typedef
-
-    /*
-	 struct ufbxi_buf_padding {
-		size_t original_pos; // < Original position before aligning
-		size_t prev_padding; // < Starting offset of the previous `ufbxi_buf_padding`
-	};
-	 */
-
-    /*
-	struct ufbxi_buf_chunk {
-
-		// Linked list of nodes
-		ufbxi_buf_chunk *root;
-		ufbxi_buf_chunk *prev;
-		ufbxi_buf_chunk *next;
-
-		union {
-			size_t magic;  // < Magic for debugging
-			void *align_0; // < Align to 4x pointer size (16/32 bytes)
-		};
-
-		size_t size;         // < Size of the chunk `data`, excluding this header
-		size_t pushed_pos;   // < Size of valid data when pushed to the list
-		size_t next_size;    // < Next geometrically growing chunk size to allocate
-		size_t padding_pos;  // < One past the offset of the most recent `ufbxi_buf_padding`
-
-		char data[]; // < Must be aligned to 8 bytes
-	};
-	 */
-
-    /*
-	 struct ufbxi_aa_node {
-		ufbxi_aa_node *left, *right;
-		uint32_t level;
-		uint32_t index;
-	};
-	 */
-
-    /*
-	 struct ufbxi_task {
-		void *data;
-		const char *error;
-	};
-	 */
-
-    /*
-	 struct ufbxi_thread_pool {
-		ufbx_thread_opts opts;
-		ufbxi_allocator *ator;
-		ufbx_error *error;
-		void *user_ptr;
-
-		bool enabled;
-		bool failed;
-		const char *error_desc;
-
-		uint32_t start_index;
-		uint32_t execute_index;
-		uint32_t wait_index;
-
-		ufbxi_task_group groups[UFBX_THREAD_GROUP_COUNT];
-		uint32_t group;
-
-		uint32_t num_tasks;
-		ufbxi_task_imp *tasks;
-	};
-	 */
-
-    /*
-	 struct ufbxi_node {
-		const char *name;      // < Name of the node (pooled, compare with == to ufbxi_* strings)
-		uint32_t num_children; // < Number of child nodes
-		uint8_t name_len;      // < Length of `name` in bytes
-
-		// If `value_type_mask == UFBXI_PROP_ARRAY` then the node is an array
-		// (`array` field is valid) otherwise the node has N values in `vals`
-		// where the type of each value is stored in 2 bits per value from LSB.
-		// ie. `vals[ix]` type is `(value_type_mask >> (ix*2)) & 0x3`
-		uint16_t value_type_mask;
-
-		ufbxi_node *children;
-		union {
-			ufbxi_value_array *array; // if `prop_type_mask == UFBXI_PROP_ARRAY`
-			ufbxi_value *vals;        // otherwise
-		};
-	};
-	 */
-
-    /*
-	 struct ufbxi_refcount {
-		ufbxi_refcount *parent;
-		void *align_0;
-		uint32_t self_magic;
-		uint32_t type_magic;
-		ufbxi_buf buf;
-		ufbxi_allocator ator;
-		uint64_t zero_pad_pre[8];
-		ufbxi_atomic_counter refcount;
-		uint64_t zero_pad_post[8];
-	};
-	 */
-
-    /*
-	 struct ufbxi_xml_attrib {
-		ufbx_string name;
-		ufbx_string value;
-	};
-
-	struct ufbxi_xml_tag {
-		ufbx_string name;
-		ufbx_string text;
-
-		ufbxi_xml_attrib *attribs;
-		size_t num_attribs;
-
-		ufbxi_xml_tag *children;
-		size_t num_children;
-	};
-
-	struct ufbxi_xml_document {
-		ufbxi_xml_tag *root;
-		ufbxi_buf buf;
-	};
-	 */
 
 
 
