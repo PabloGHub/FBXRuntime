@@ -10892,7 +10892,7 @@ namespace Ufbx
     {
     }
 
-    public static unsafe partial class Ufbx
+    public static unsafe partial class UfbxNative
     {
         public const int UFBX_ROTATION_ORDER_COUNT = (int)(UFBX_ROTATION_ORDER_SPHERIC + 1);
 
