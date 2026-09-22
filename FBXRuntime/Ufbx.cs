@@ -35,15 +35,26 @@ namespace Ufbx
             return In.Internal_LoadScene(pPath, out OutError);
         }
 
-        public static unsafe string UfbxStringToString(ref ufbx_string pString)
+        public static unsafe string UfbxStringToString(ref ufbx_string pUSTR)
         {
-            string neo = "";
-            neo = new string(pString.data, 0, (int)pString.length);
-
-            return neo;
+            if (pUSTR.data == null || pUSTR.length == UIntPtr.Zero)
+                return string.Empty;
+            return Encoding.UTF8.GetString((byte*)pUSTR.data, (int)pUSTR.length);
         }
 
+        public static unsafe string UfbxStringToManaged(ufbx_string pUfbxString)
+        {
+            if (pUfbxString.data == null || pUfbxString.length == UIntPtr.Zero)
+                return string.Empty;
 
+            int length = (int)pUfbxString.length;
+            byte[] bytes = new byte[length];
+            for (int i = 0; i < length; i++)
+            {
+                bytes[i] = (byte)pUfbxString.data[i];
+            }
+            return Encoding.UTF8.GetString(bytes);
+        }
 
 
 
@@ -68,7 +79,8 @@ namespace Ufbx
 
     internal static class In
     {
-
+        // [DllImport("ufbx", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        // public unsafe static extern ufbx_scene* ufbx_load_file([NativeTypeName("const char *")] sbyte* filename, [NativeTypeName("const ufbx_load_opts *")] ufbx_load_opts* opts, ufbx_error* error);
         internal static unsafe ufbx_scene* Internal_LoadScene(string pPath, out ufbx_error OutError)
         {
             byte[] pPathBytes = Encoding.UTF8.GetBytes(pPath + "\0");
@@ -105,7 +117,11 @@ namespace Ufbx
 
     internal static class Out
     {
-
+        internal static unsafe bool Internal_SaveScene(string pPath, ufbx_scene* pScene, out ufbx_error OutError)
+        {
+            throw new NotImplementedException("TODO: Guardar escena en archivo");
+            return false;
+        }
     }
 
 
@@ -117,9 +133,21 @@ namespace Ufbx
 
 
 
+    public static unsafe class Ufbx_Extension
+    {
+
+    }
 
 
 
+
+    public unsafe partial struct ufbx_string
+    {
+        public override string ToString()
+        {
+            return CsUfbx.UfbxStringToManaged(this);
+        }
+    }
 
 
 
