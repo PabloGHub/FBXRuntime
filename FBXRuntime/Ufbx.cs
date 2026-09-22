@@ -35,13 +35,17 @@ namespace Ufbx
             return In.Internal_LoadScene(pPath, out OutError);
         }
 
+
+
+        // Eh Comprobado que \/ tambien funciona.
+        // new string((sbyte*)node->name.data, 0, (int)node->name.length)
+
         public static unsafe string UfbxStringToString(ref ufbx_string pUSTR)
         {
             if (pUSTR.data == null || pUSTR.length == UIntPtr.Zero)
                 return string.Empty;
             return Encoding.UTF8.GetString((byte*)pUSTR.data, (int)pUSTR.length);
         }
-
         public static unsafe string UfbxStringToManaged(ufbx_string pUfbxString)
         {
             if (pUfbxString.data == null || pUfbxString.length == UIntPtr.Zero)
