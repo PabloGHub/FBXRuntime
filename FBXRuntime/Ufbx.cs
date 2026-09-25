@@ -39,13 +39,14 @@ namespace Ufbx
 
         // Eh Comprobado que \/ tambien funciona.
         // new string((sbyte*)node->name.data, 0, (int)node->name.length)
-
+        [Obsolete("Use: ConvertString")]
         public static unsafe string UfbxStringToString(ref ufbx_string pUSTR)
         {
             if (pUSTR.data == null || pUSTR.length == UIntPtr.Zero)
                 return string.Empty;
             return Encoding.UTF8.GetString((byte*)pUSTR.data, (int)pUSTR.length);
         }
+        [Obsolete("Use: ConvertString")]
         public static unsafe string UfbxStringToManaged(ufbx_string pUfbxString)
         {
             if (pUfbxString.data == null || pUfbxString.length == UIntPtr.Zero)
@@ -59,6 +60,29 @@ namespace Ufbx
             }
             return Encoding.UTF8.GetString(bytes);
         }
+
+
+
+        public static unsafe string ConvertString(in ufbx_string pU_str)
+        {
+            if (pU_str.data == null || pU_str.length == UIntPtr.Zero)
+                return string.Empty;
+            return Encoding.UTF8.GetString((byte*)pU_str.data, (int)pU_str.length);
+        }
+        public static unsafe string ConvertString(ufbx_string* pU_str)
+        {
+            if (pU_str == null || pU_str->data == null || pU_str->length == UIntPtr.Zero)
+                return string.Empty;
+            return Encoding.UTF8.GetString((byte*)pU_str->data, (int)pU_str->length);
+        }
+        public static string ConvertString(ufbx_string pU_str) =>
+            ConvertString(in pU_str);
+
+
+
+
+
+
 
 
 
@@ -147,9 +171,9 @@ namespace Ufbx
 
     public unsafe partial struct ufbx_string
     {
-        public override string ToString()
+        public override readonly string ToString()
         {
-            return CsUfbx.UfbxStringToManaged(this);
+            return CsUfbx.ConvertString(in this);
         }
     }
 
